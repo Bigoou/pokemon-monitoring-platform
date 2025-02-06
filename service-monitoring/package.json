@@ -1,19 +1,13 @@
 {
   "name": "monitoring-service",
   "version": "1.0.0",
+  "description": "Service de monitoring pour les APIs",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "prepare": "husky install"
-  },
-  "lint-staged": {
-    "*.js": [
-      "prettier --write",
-      "eslint --fix"
-    ]
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",
@@ -26,12 +20,7 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.0.3",
-    "@commitlint/config-conventional": "^19.0.3",
     "eslint": "^8.57.0",
-    "husky": "^4.3.8",
-    "lint-staged": "^15.2.2",
     "prettier": "^3.2.5"
-  },
-  "description": "Service de monitoring pour les APIs"
+  }
 }
