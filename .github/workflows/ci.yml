@@ -7,11 +7,11 @@ on:
     branches: [ main ]
 
 jobs:
-  lint-and-format:
+  monitoring-service:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [pokemon-api, monitoring-service]
+    defaults:
+      run:
+        working-directory: ./monitoring-service
 
     steps:
     - uses: actions/checkout@v3
@@ -21,19 +21,58 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: ${{ matrix.service }}/package-lock.json
+        cache-dependency-path: monitoring-service/package-lock.json
 
     - name: Install dependencies
-      run: |
-        cd ${{ matrix.service }}
-        npm ci
+      run: npm ci
 
     - name: Run ESLint
-      run: |
-        cd ${{ matrix.service }}
-        npm run lint
+      run: npm run lint
 
     - name: Check formatting
+      run: npx prettier --check .
+
+    - name: Create env file
       run: |
-        cd ${{ matrix.service }}
-        npx prettier --check . 
+        touch .env
+        echo "DISCORD_WEBHOOK_URL=${{ secrets.DISCORD_WEBHOOK_URL }}" >> .env
+        echo "MONITORING_INTERVAL=\"*/5 * * * *\"" >> .env
+        echo "REQUEST_TIMEOUT=5000" >> .env
+        echo "SERVICE_URL=http://localhost:3000/cards" >> .env
+
+    - name: Test build
+      run: node -c index.js
+
+  pokemon-api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./pokemon-api
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: pokemon-api/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Check formatting
+      run: npx prettier --check .
+
+    - name: Create env file
+      run: |
+        touch .env
+        echo "PORT=3000" >> .env
+        echo "DATA_DIR=./data" >> .env
+
+    - name: Test build
+      run: node -c index.js 
