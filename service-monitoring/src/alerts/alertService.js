@@ -1,95 +1,70 @@
-const axios = require('axios');
-const config = require('../config/config');
+const { sendDiscordAlert } = require('./discordAlert');
 const logger = require('../utils/logger');
+const { broadcastStatus, broadcastAlert } = require('../websocket/socketServer');
 
 /**
- * Send message to Discord with error handling
- * @param {Object} params Message parameters
- * @returns {Promise<void>}
+ * Send a status report to all notification channels
+ * @param {object} status - Service status information
  */
-async function sendDiscordMessage(params) {
+async function sendStatusReport(status) {
   try {
-    const message = {
-      username: 'Service Monitoring',
-      embeds: [{
-        title: params.title,
-        description: params.description,
-        color: params.color,
-        fields: params.fields,
-        timestamp: new Date().toISOString()
-      }]
-    };
+    // Broadcast to WebSocket clients
+    broadcastStatus(status);
 
-    await axios.post(config.discord.webhookUrl, message);
-    logger.info('Discord alert sent successfully', {
-      type: 'discord_alert',
-      status: 'success',
-    });
+    // Send alerts if needed
+    if (!status.isUp || status.isHighLatency || status.isStatusChange) {
+      const alertType = !status.isUp ? 'error' : 'warning';
+      const message = getAlertMessage(status);
+
+      // Send to Discord
+      await sendDiscordAlert({
+        type: alertType,
+        message,
+        details: status
+      });
+
+      // Broadcast alert to WebSocket clients
+      broadcastAlert({
+        type: alertType,
+        message,
+        details: status
+      });
+
+      // Log the alert
+      logger.warn('Alert sent', {
+        type: 'alert',
+        alertType,
+        message,
+        status
+      });
+    }
   } catch (error) {
-    logger.error('Failed to send Discord alert', {
-      type: 'discord_alert',
-      status: 'error',
+    logger.error('Error sending status report', {
       error: error.message,
-      stack: error.stack,
+      type: 'error',
+      status
     });
-    throw error;
   }
 }
 
 /**
- * Alert service for sending notifications to Discord
+ * Get appropriate alert message based on status
+ * @param {object} status - Service status information
+ * @returns {string} Alert message
  */
-class AlertService {
-  /**
-   * Send a status report
-   * @param {Object} status Status information
-   * @param {boolean} status.isUp Whether the service is up
-   * @param {number} status.responseTime Response time in milliseconds
-   * @param {string} [status.error] Error message if any
-   * @param {boolean} [status.isHighLatency] Whether the service has high latency
-   * @param {boolean} [status.isStatusChange] Whether this is a status change notification
-   * @returns {Promise<void>}
-   */
-  async sendStatusReport(status) {
-    const statusEmoji = status.isUp ? '🟢' : '🔴';
-    const statusText = status.isUp ? 'Opérationnel' : 'Hors service';
-    let color = status.isUp ? config.discord.colors.success : config.discord.colors.error;
-
-    // Si la latence est élevée mais le service est up, utiliser la couleur warning
-    if (status.isHighLatency && status.isUp) {
-      color = config.discord.colors.warning;
-    }
-
-    const fields = [
-      { name: 'URL', value: config.monitoring.serviceUrl },
-      { name: 'État', value: statusText },
-      { name: 'Temps de réponse', value: status.isUp ? `${status.responseTime}ms` : 'N/A' }
-    ];
-
-    if (status.error) {
-      fields.push({ name: 'Erreur', value: status.error });
-    }
-
-    if (status.isHighLatency) {
-      fields.push({ name: 'Seuil de latence', value: `${config.monitoring.thresholds.responseTime}ms` });
-    }
-
-    let description = 'État actuel du service Pokemon API';
-    if (status.isStatusChange) {
-      description = status.isUp 
-        ? '✨ Le service est de nouveau opérationnel'
-        : '❌ Le service est devenu injoignable';
-    } else if (status.isHighLatency) {
-      description = '⚠️ Le service répond avec une latence élevée';
-    }
-
-    await sendDiscordMessage({
-      title: `${statusEmoji} Rapport d'état`,
-      description,
-      color,
-      fields
-    });
+function getAlertMessage(status) {
+  if (!status.isUp) {
+    return `⚠️ Service is DOWN! ${status.error || 'No response from service'}`;
   }
+  if (status.isHighLatency) {
+    return `⚠️ High latency detected: ${status.responseTime}ms`;
+  }
+  if (status.isStatusChange) {
+    return '✅ Service is back online!';
+  }
+  return 'Service status changed';
 }
 
-module.exports = new AlertService(); 
+module.exports = {
+  sendStatusReport
+}; 

@@ -1,15 +1,32 @@
-const monitor = require('./src/cron/monitor');
+require('dotenv').config();
+const { initServer } = require('./src/server');
+const { initMonitoring } = require('./src/cron/monitor');
 const logger = require('./src/utils/logger');
 
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught exception', { error: error.message, stack: error.stack });
-  process.exit(1);
-});
+const PORT = process.env.PORT || 8080;
 
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled rejection', { reason, promise });
-  process.exit(1);
-});
+async function start() {
+  try {
+    // Initialize server
+    const server = await initServer();
 
-// Start the monitoring service
-monitor.initMonitoring();
+    // Start server
+    server.listen(PORT, () => {
+      logger.info(`Server started on port ${PORT}`, {
+        type: 'server_start',
+        port: PORT
+      });
+    });
+
+    // Initialize monitoring
+    initMonitoring();
+  } catch (error) {
+    logger.error('Failed to start application', {
+      error: error.message,
+      type: 'startup_error'
+    });
+    process.exit(1);
+  }
+}
+
+start();
