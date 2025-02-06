@@ -1,0 +1,39 @@
+{
+  "name": "pokemon-api",
+  "version": "1.0.0",
+  "description": "API REST pour la gestion des cartes Pokémon",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "prepare": "husky install"
+  },
+  "keywords": [
+    "pokemon",
+    "api",
+    "cards"
+  ],
+  "author": "",
+  "license": "ISC",
+  "lint-staged": {
+    "*.js": [
+      "prettier --write",
+      "eslint --fix"
+    ]
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.0.3",
+    "@commitlint/config-conventional": "^19.0.3",
+    "eslint": "^8.57.0",
+    "husky": "^4.3.8",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5"
+  }
+}
