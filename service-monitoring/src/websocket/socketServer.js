@@ -1,7 +1,9 @@
 const { Server } = require('socket.io');
 const logger = require('../utils/logger');
 const { socketAuth } = require('../auth/middleware');
-const User = require('../models/User');
+const axios = require('axios');
+
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
 
 let io;
 let connectedClients = new Set();
@@ -9,9 +11,8 @@ let connectedClients = new Set();
 /**
  * Initialize Socket.IO server
  * @param {object} httpServer - HTTP server instance
- * @param {object} sessionMiddleware - Express session middleware
  */
-function initSocketServer(httpServer, sessionMiddleware) {
+function initSocketServer(httpServer) {
   io = new Server(httpServer, {
     cors: {
       origin: process.env.DASHBOARD_URL || 'http://localhost:5173',
@@ -20,31 +21,12 @@ function initSocketServer(httpServer, sessionMiddleware) {
     }
   });
 
-  // Use session middleware with Socket.IO
-  io.use((socket, next) => {
-    sessionMiddleware(socket.request, {}, next);
-  });
-
-  // Optional: Use authentication middleware
-  // io.use(socketAuth);
+  // Use authentication middleware
+  io.use(socketAuth);
 
   io.on('connection', async (socket) => {
-    // Get user info if authenticated
-    let userInfo = 'Anonymous';
-    if (socket.request.session.passport && socket.request.session.passport.user) {
-      try {
-        const user = await User.findById(socket.request.session.passport.user);
-        if (user) {
-          userInfo = user.displayName;
-          socket.user = user;
-        }
-      } catch (error) {
-        logger.error('Error fetching user for socket', {
-          error: error.message,
-          type: 'websocket_error'
-        });
-      }
-    }
+    // User info is now available from JWT validation
+    const userInfo = socket.user ? socket.user.email : 'Anonymous';
 
     logger.info('New client connected', {
       clientId: socket.id,

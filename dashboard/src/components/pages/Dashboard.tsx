@@ -4,6 +4,7 @@ import { ServiceStatus, AlertHistory } from '../../types/monitoring';
 import { StatusCard } from '../monitoring/StatusCard';
 import { ResponseTimeChart } from '../monitoring/ResponseTimeChart';
 import { AlertList } from '../monitoring/AlertList';
+import { useAuth } from '../../contexts/AuthContext';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
 
@@ -12,6 +13,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
  * Displays real-time monitoring information
  */
 export const Dashboard = () => {
+  const { getAuthToken } = useAuth();
   const [currentStatus, setCurrentStatus] = useState<ServiceStatus>({
     isUp: true,
     responseTime: 0,
@@ -21,7 +23,25 @@ export const Dashboard = () => {
   const [alerts, setAlerts] = useState<AlertHistory[]>([]);
 
   useEffect(() => {
-    const socket = io(BACKEND_URL);
+    const token = getAuthToken();
+    
+    if (!token) {
+      console.error('No authentication token available');
+      return;
+    }
+    
+    const socket = io(BACKEND_URL, {
+      auth: { token },
+      withCredentials: true
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('WebSocket connection error:', error.message);
+    });
 
     socket.on('statusUpdate', (status: ServiceStatus) => {
       setCurrentStatus(status);
@@ -37,7 +57,7 @@ export const Dashboard = () => {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [getAuthToken]);
 
   return (
     <div className="space-y-6">

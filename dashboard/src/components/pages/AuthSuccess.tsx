@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 /**
@@ -8,14 +8,24 @@ import { useAuth } from '../../contexts/AuthContext';
 export const AuthSuccess = () => {
   const { checkAuthStatus, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    console.log('AuthSuccess - Current URL:', window.location.href);
+    console.log('AuthSuccess - Search params:', location.search);
+    console.log('AuthSuccess - Auth state:', { isAuthenticated, isLoading });
+
     const verifyAuth = async () => {
+      console.log('AuthSuccess - Verifying authentication...');
+      // Le token est déjà récupéré et stocké dans le contexte d'authentification
       const isAuth = await checkAuthStatus();
+      console.log('AuthSuccess - Authentication result:', isAuth);
       
       if (isAuth) {
+        console.log('AuthSuccess - Redirecting to dashboard');
         navigate('/', { replace: true });
       } else {
+        console.log('AuthSuccess - Redirecting to login (auth failed)');
         navigate('/login', { replace: true });
       }
     };
@@ -23,12 +33,13 @@ export const AuthSuccess = () => {
     // Ne vérifier que si le chargement est terminé et que l'utilisateur n'est pas déjà authentifié
     if (!isLoading) {
       if (isAuthenticated) {
+        console.log('AuthSuccess - Already authenticated, redirecting to dashboard');
         navigate('/', { replace: true });
       } else {
         verifyAuth();
       }
     }
-  }, [checkAuthStatus, isAuthenticated, isLoading, navigate]);
+  }, [checkAuthStatus, isAuthenticated, isLoading, navigate, location]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-
-import io from 'socket.io-client';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
 import { Dashboard } from './components/pages/Dashboard';
@@ -8,11 +6,10 @@ import { Login } from './components/pages/Login';
 import { AuthSuccess } from './components/pages/AuthSuccess';
 import { Unauthorized } from './components/pages/Unauthorized';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AlertHistory, MonitoringConfig, ServiceStatus } from './types/monitoring';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
-const socket = io(BACKEND_URL);
 
 // Pages de base
 const Services = () => (
@@ -29,21 +26,9 @@ const Alerts = () => (
   </div>
 );
 
-const Settings = () => (
-  <div className="bg-white p-6 rounded-lg shadow-sm">
-    <h1 className="text-2xl font-bold mb-6">Paramètres</h1>
-    <p>Page des paramètres en construction...</p>
-  </div>
-);
-
-function App() {
-  const [currentStatus, setCurrentStatus] = useState<ServiceStatus>({
-    isUp: true,
-    responseTime: 0,
-    timestamp: new Date().toISOString(),
-  });
-  const [statusHistory, setStatusHistory] = useState<ServiceStatus[]>([]);
-  const [alerts, setAlerts] = useState<AlertHistory[]>([]);
+// Composant de paramètres qui utilise l'API avec JWT
+const SettingsContent = () => {
+  const { getAuthToken } = useAuth();
   const [config, setConfig] = useState<MonitoringConfig>({
     interval: '*/1 * * * *',
     requestTimeout: 5000,
@@ -53,34 +38,52 @@ function App() {
       errorCount: 2,
     },
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    socket.on('statusUpdate', (status: ServiceStatus) => {
-      setCurrentStatus(status);
-      setStatusHistory(prev => [...prev.slice(-50), status]);
-    });
+    const fetchConfig = async () => {
+      try {
+        const token = getAuthToken();
+        if (!token) {
+          throw new Error('No authentication token');
+        }
 
-    socket.on('alert', (alert: AlertHistory) => {
-      setAlerts(prev => [...prev.slice(-100), alert]);
-    });
+        const response = await fetch(`${BACKEND_URL}/config`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-    socket.on('config', (newConfig: MonitoringConfig) => {
-      setConfig(newConfig);
-    });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch config: ${response.status}`);
+        }
 
-    socket.connect();
-
-    return () => {
-      socket.disconnect();
+        const data = await response.json();
+        setConfig(data);
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load configuration');
+        setLoading(false);
+      }
     };
-  }, []);
+
+    fetchConfig();
+  }, [getAuthToken]);
 
   const handleConfigUpdate = async (newConfig: MonitoringConfig) => {
     try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
       const response = await fetch(`${BACKEND_URL}/config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(newConfig),
       });
@@ -89,12 +92,62 @@ function App() {
         throw new Error('Failed to update config');
       }
 
-      setConfig(newConfig);
-    } catch (error) {
-      console.error('Error updating config:', error);
+      const data = await response.json();
+      setConfig(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update configuration');
     }
   };
 
+  if (loading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        <h1 className="text-2xl font-bold mb-6">Paramètres</h1>
+        <div className="flex justify-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        <h1 className="text-2xl font-bold mb-6">Paramètres</h1>
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+          <p className="text-red-700">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-sm">
+      <h1 className="text-2xl font-bold mb-6">Paramètres</h1>
+      <p>Configuration actuelle :</p>
+      <pre className="bg-gray-100 p-4 rounded mt-2 mb-4">
+        {JSON.stringify(config, null, 2)}
+      </pre>
+      <button
+        onClick={() => handleConfigUpdate({
+          ...config,
+          requestTimeout: config.requestTimeout + 1000
+        })}
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Augmenter le timeout
+      </button>
+    </div>
+  );
+};
+
+// Wrapper pour les paramètres
+const Settings = () => (
+  <SettingsContent />
+);
+
+function App() {
   return (
     <AuthProvider>
       <Router>

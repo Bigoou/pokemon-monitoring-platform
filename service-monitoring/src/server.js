@@ -1,14 +1,10 @@
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
-const passport = require('passport');
 const { initSocketServer } = require('./websocket/socketServer');
 const logger = require('./utils/logger');
 const config = require('./config/config');
-const { configurePassport } = require('./auth/passport');
-const authRoutes = require('./routes/auth');
+const { isAuthenticated, isAdmin } = require('./auth/middleware');
 const { connectDB } = require('./config/database');
 
 /**
@@ -29,34 +25,8 @@ async function initServer() {
   }));
   app.use(express.json());
 
-  // Session configuration
-  const sessionMiddleware = session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGODB_URI,
-      collectionName: 'sessions'
-    }),
-    cookie: {
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    }
-  });
-
-  app.use(sessionMiddleware);
-
-  // Initialize Passport
-  configurePassport();
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  // Initialize Socket.IO with session
-  initSocketServer(server, sessionMiddleware);
-
-  // Routes
-  app.use('/auth', authRoutes);
+  // Initialize Socket.IO
+  initSocketServer(server);
 
   // Basic health check endpoint
   app.get('/health', (req, res) => {
@@ -64,17 +34,18 @@ async function initServer() {
   });
 
   // Configuration endpoint - protected by authentication
-  app.get('/config', (req, res) => {
+  app.get('/config', isAuthenticated, (req, res) => {
     res.json(config.monitoring);
   });
 
-  app.post('/config', (req, res) => {
+  app.post('/config', isAuthenticated, isAdmin, (req, res) => {
     try {
       // Mise à jour de la configuration
       Object.assign(config.monitoring, req.body);
       logger.info('Configuration updated', {
         type: 'config_update',
-        newConfig: config.monitoring
+        newConfig: config.monitoring,
+        user: req.user.email
       });
       res.json(config.monitoring);
     } catch (error) {
