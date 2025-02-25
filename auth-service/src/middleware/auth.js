@@ -72,7 +72,12 @@ function generateToken(user) {
       email: user.email,
       role: user.role,
       displayName: user.displayName,
-      profilePicture: user.profilePicture
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profilePicture: user.profilePicture,
+      googleId: user.googleId,
+      githubId: user.githubId,
+      authProvider: user.authProvider
     };
 
     const token = jwt.sign(
