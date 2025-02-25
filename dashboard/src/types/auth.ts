@@ -3,13 +3,15 @@
  */
 export interface User {
   id: string;
-  googleId: string;
+  googleId?: string;
+  githubId?: string;
   displayName: string;
   firstName?: string;
   lastName?: string;
   email: string;
   profilePicture?: string;
   role: 'user' | 'admin';
+  authProvider: 'google' | 'github';
 }
 
 /**

@@ -6,8 +6,11 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   googleId: {
     type: String,
-    required: true,
-    unique: true
+    sparse: true
+  },
+  githubId: {
+    type: String,
+    sparse: true
   },
   displayName: {
     type: String,
@@ -25,6 +28,11 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user'
   },
+  authProvider: {
+    type: String,
+    enum: ['google', 'github'],
+    required: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -34,5 +42,16 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+// Ensure either googleId or githubId is present
+userSchema.pre('save', function(next) {
+  if (!this.googleId && !this.githubId) {
+    return next(new Error('User must have either a Google ID or GitHub ID'));
+  }
+  next();
+});
+
+// Create compound index for email and authProvider to ensure uniqueness per provider
+userSchema.index({ email: 1, authProvider: 1 }, { unique: true });
 
 module.exports = mongoose.model('User', userSchema); 

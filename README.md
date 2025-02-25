@@ -49,7 +49,7 @@ Service de surveillance des APIs avec notifications Discord et WebSockets.
 Microservice dédié à l'authentification des utilisateurs.
 
 ### Fonctionnalités
-- Authentification via Google OAuth 2.0
+- Authentification via Google OAuth 2.0 et GitHub OAuth
 - Gestion des sessions utilisateur
 - Génération et validation de JWT
 - Stockage des utilisateurs dans MongoDB
@@ -58,7 +58,7 @@ Microservice dédié à l'authentification des utilisateurs.
 ### Technologies
 - Node.js
 - Express
-- Passport.js
+- Passport.js (Google OAuth et GitHub OAuth)
 - JWT
 - MongoDB
 - Winston (logging)
@@ -71,7 +71,7 @@ Interface utilisateur pour visualiser les données de monitoring en temps réel.
 - Graphiques de temps de réponse
 - Historique des alertes
 - Interface d'administration pour la configuration
-- Authentification sécurisée
+- Authentification sécurisée (Google et GitHub)
 
 ### Technologies
 - React
@@ -113,7 +113,7 @@ cp .env.example .env
 ```bash
 cd auth-service
 cp .env.example .env
-# Configurer les clés Google OAuth, MongoDB et JWT
+# Configurer les clés Google OAuth, GitHub OAuth, MongoDB et JWT
 ```
 
 4. Dashboard

@@ -67,6 +67,65 @@ router.get(
 );
 
 /**
+ * @route   GET /auth/github
+ * @desc    Authenticate with GitHub
+ * @access  Public
+ */
+router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
+
+/**
+ * @route   GET /auth/github/callback
+ * @desc    GitHub auth callback
+ * @access  Public
+ */
+router.get(
+  '/github/callback',
+  passport.authenticate('github', {
+    failureRedirect: `${process.env.DASHBOARD_URL}/login?error=auth_failed`,
+    session: true
+  }),
+  (req, res) => {
+    try {
+      if (!req.user) {
+        logger.error('No user found in request after authentication', {
+          type: 'auth',
+          action: 'callback',
+          provider: 'github'
+        });
+        return res.redirect(`${process.env.DASHBOARD_URL}/login?error=no_user`);
+      }
+
+      logger.info('Authentication successful', {
+        type: 'auth',
+        action: 'callback',
+        provider: 'github',
+        userId: req.user.id
+      });
+      
+      // Generate JWT token
+      const token = generateToken(req.user);
+      
+      logger.info('Token generated successfully', {
+        type: 'auth',
+        action: 'token_generated',
+        userId: req.user.id
+      });
+      
+      // Redirect to success page with token
+      res.redirect(`${process.env.DASHBOARD_URL}/auth-success?token=${token}`);
+    } catch (error) {
+      logger.error('Error in GitHub callback', {
+        type: 'auth',
+        action: 'callback_error',
+        provider: 'github',
+        error: error.message
+      });
+      res.redirect(`${process.env.DASHBOARD_URL}/login?error=callback_error`);
+    }
+  }
+);
+
+/**
  * @route   GET /auth/user
  * @desc    Get current user info
  * @access  Private
@@ -74,17 +133,19 @@ router.get(
 router.get('/user', isAuthenticated, (req, res) => {
   try {
     // Remove sensitive information
-    const { _id, googleId, displayName, firstName, lastName, email, profilePicture, role } = req.user;
+    const { _id, googleId, githubId, displayName, firstName, lastName, email, profilePicture, role, authProvider } = req.user;
     
     res.json({
       id: _id,
       googleId,
+      githubId,
       displayName,
       firstName,
       lastName,
       email,
       profilePicture,
-      role
+      role,
+      authProvider
     });
   } catch (error) {
     logger.error('Error getting user info', {

@@ -5,7 +5,8 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
 const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:3001';
 
 interface AuthContextType extends AuthState {
-  login: () => void;
+  loginWithGoogle: () => void;
+  loginWithGithub: () => void;
   logout: () => void;
   checkAuthStatus: () => Promise<boolean>;
   getAuthToken: () => string | null;
@@ -20,7 +21,8 @@ const defaultAuthState: AuthState = {
 
 const AuthContext = createContext<AuthContextType>({
   ...defaultAuthState,
-  login: () => {},
+  loginWithGoogle: () => {},
+  loginWithGithub: () => {},
   logout: () => {},
   checkAuthStatus: async () => false,
   getAuthToken: () => null
@@ -141,9 +143,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   /**
    * Redirect to Google login
    */
-  const login = () => {
-    console.log('AuthContext - Redirecting to login...');
+  const loginWithGoogle = () => {
+    console.log('AuthContext - Redirecting to Google login...');
     window.location.href = `${AUTH_SERVICE_URL}/auth/google`;
+  };
+
+  /**
+   * Redirect to GitHub login
+   */
+  const loginWithGithub = () => {
+    console.log('AuthContext - Redirecting to GitHub login...');
+    window.location.href = `${AUTH_SERVICE_URL}/auth/github`;
   };
 
   /**
@@ -172,7 +182,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     <AuthContext.Provider
       value={{
         ...authState,
-        login,
+        loginWithGoogle,
+        loginWithGithub,
         logout,
         checkAuthStatus,
         getAuthToken
