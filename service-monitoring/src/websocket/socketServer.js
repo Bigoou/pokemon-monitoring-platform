@@ -1,5 +1,7 @@
 const { Server } = require('socket.io');
 const logger = require('../utils/logger');
+const { socketAuth } = require('../auth/middleware');
+const User = require('../models/User');
 
 let io;
 let connectedClients = new Set();
@@ -7,18 +9,46 @@ let connectedClients = new Set();
 /**
  * Initialize Socket.IO server
  * @param {object} httpServer - HTTP server instance
+ * @param {object} sessionMiddleware - Express session middleware
  */
-function initSocketServer(httpServer) {
+function initSocketServer(httpServer, sessionMiddleware) {
   io = new Server(httpServer, {
     cors: {
       origin: process.env.DASHBOARD_URL || 'http://localhost:5173',
-      methods: ['GET', 'POST']
+      methods: ['GET', 'POST'],
+      credentials: true
     }
   });
 
-  io.on('connection', (socket) => {
+  // Use session middleware with Socket.IO
+  io.use((socket, next) => {
+    sessionMiddleware(socket.request, {}, next);
+  });
+
+  // Optional: Use authentication middleware
+  // io.use(socketAuth);
+
+  io.on('connection', async (socket) => {
+    // Get user info if authenticated
+    let userInfo = 'Anonymous';
+    if (socket.request.session.passport && socket.request.session.passport.user) {
+      try {
+        const user = await User.findById(socket.request.session.passport.user);
+        if (user) {
+          userInfo = user.displayName;
+          socket.user = user;
+        }
+      } catch (error) {
+        logger.error('Error fetching user for socket', {
+          error: error.message,
+          type: 'websocket_error'
+        });
+      }
+    }
+
     logger.info('New client connected', {
       clientId: socket.id,
+      user: userInfo,
       type: 'websocket',
       event: 'connection'
     });
@@ -28,6 +58,7 @@ function initSocketServer(httpServer) {
     socket.on('disconnect', () => {
       logger.info('Client disconnected', {
         clientId: socket.id,
+        user: userInfo,
         type: 'websocket',
         event: 'disconnect'
       });

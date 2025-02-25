@@ -5,7 +5,7 @@ import { StatusCard } from '../monitoring/StatusCard';
 import { ResponseTimeChart } from '../monitoring/ResponseTimeChart';
 import { AlertList } from '../monitoring/AlertList';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
 
 /**
  * Main dashboard page component

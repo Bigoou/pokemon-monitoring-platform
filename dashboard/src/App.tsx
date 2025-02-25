@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
 
-import { ServiceStatus, AlertHistory, MonitoringConfig } from '../../service-monitoring/dashboard/src/types/monitoring';
 import io from 'socket.io-client';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
 import { Dashboard } from './components/pages/Dashboard';
+import { Login } from './components/pages/Login';
+import { AuthSuccess } from './components/pages/AuthSuccess';
+import { Unauthorized } from './components/pages/Unauthorized';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { AuthProvider } from './contexts/AuthContext';
+import { AlertHistory, MonitoringConfig, ServiceStatus } from './types/monitoring';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
 const socket = io(BACKEND_URL);
 
-// Pages
+// Pages de base
 const Services = () => (
   <div className="bg-white p-6 rounded-lg shadow-sm">
     <h1 className="text-2xl font-bold mb-6">Services</h1>
@@ -91,16 +96,43 @@ function App() {
   };
 
   return (
-    <Router>
-      <MainLayout>
+    <AuthProvider>
+      <Router>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/alerts" element={<Alerts />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth-success" element={<AuthSuccess />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Dashboard />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/services" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Services />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/alerts" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Alerts />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute requireAdmin={true}>
+              <MainLayout>
+                <Settings />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
         </Routes>
-      </MainLayout>
-    </Router>
+      </Router>
+    </AuthProvider>
   );
 }
 
