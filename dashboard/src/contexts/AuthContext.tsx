@@ -56,7 +56,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    */
   const checkAuthStatus = async (): Promise<boolean> => {
     try {
-      console.log('AuthContext - Checking auth status...');
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       
       // Check if we have a token in URL params (after redirect from auth service)
@@ -64,7 +63,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const tokenParam = urlParams.get('token');
       
       if (tokenParam) {
-        console.log('AuthContext - Token found in URL params');
         localStorage.setItem('auth_token', tokenParam);
         setToken(tokenParam);
         
@@ -91,14 +89,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
 
       const data = await response.json();
-      console.log('AuthContext - Token validation response:', data);
       
       if (!data.valid) {
         console.log('AuthContext - Token invalid:', data.error);
         throw new Error(data.error || 'Invalid token');
       }
 
-      console.log('AuthContext - Getting user info');
       // Get user info
       const userResponse = await fetch(`${AUTH_SERVICE_URL}/auth/user`, {
         method: 'GET',
@@ -113,7 +109,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       const user: User = await userResponse.json();
-      console.log('AuthContext - User authenticated:', user.displayName);
       
       setAuthState({
         isAuthenticated: true,
@@ -144,7 +139,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    * Redirect to Google login
    */
   const loginWithGoogle = () => {
-    console.log('AuthContext - Redirecting to Google login...');
     window.location.href = `${AUTH_SERVICE_URL}/auth/google`;
   };
 
@@ -152,7 +146,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    * Redirect to GitHub login
    */
   const loginWithGithub = () => {
-    console.log('AuthContext - Redirecting to GitHub login...');
     window.location.href = `${AUTH_SERVICE_URL}/auth/github`;
   };
 
@@ -160,7 +153,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    * Logout user
    */
   const logout = () => {
-    console.log('AuthContext - Logging out...');
     localStorage.removeItem('auth_token');
     setToken(null);
     setAuthState({
