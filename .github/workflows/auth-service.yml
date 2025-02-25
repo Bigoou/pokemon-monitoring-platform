@@ -1,0 +1,44 @@
+name: Auth Service CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'auth-service/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'auth-service/**'
+
+jobs:
+  auth-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./auth-service
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: auth-service/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Check formatting
+      run: npx prettier --check .
+
+    - name: Create env file
+      run: |
+        cp .env.example .env
+        
+    - name: Test build
+      run: node -c index.js 
