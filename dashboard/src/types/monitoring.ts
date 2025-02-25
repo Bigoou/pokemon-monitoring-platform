@@ -5,6 +5,8 @@ export interface ServiceStatus {
   isUp: boolean;
   responseTime: number;
   timestamp: string;
+  isHighLatency?: boolean;
+  error?: string;
 }
 
 /**
