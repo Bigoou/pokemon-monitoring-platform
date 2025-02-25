@@ -7,15 +7,22 @@ export interface ServiceStatus {
   timestamp: string;
   isHighLatency?: boolean;
   error?: string;
+  status?: 'UP' | 'DOWN' | 'DEGRADED';
 }
 
 /**
  * Alert history entry
  */
 export interface AlertHistory {
-  type: 'error' | 'warning';
+  type: 'error' | 'warning' | 'status_change' | 'high_latency';
   message: string;
   timestamp: string;
+  details?: {
+    status?: 'UP' | 'DOWN' | 'DEGRADED';
+    responseTime?: number;
+    error?: string;
+    [key: string]: any;
+  };
 }
 
 /**

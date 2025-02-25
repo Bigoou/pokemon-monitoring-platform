@@ -1,14 +1,11 @@
 import { useMonitoring } from '../../hooks/useMonitoring';
-import { StatusCard } from '../monitoring/StatusCard';
-import { ResponseTimeChart } from '../monitoring/ResponseTimeChart';
-import { AlertList } from '../monitoring/AlertList';
+import { AlertList } from '../AlertList';
 
 /**
- * Main dashboard page component
- * Displays real-time monitoring information
+ * Page d'alertes qui affiche l'historique des alertes
  */
-export const Dashboard = () => {
-  const { currentStatus, statusHistory, alerts, isConnected, reconnect } = useMonitoring();
+export const Alerts = () => {
+  const { alerts, isConnected, reconnect } = useMonitoring();
 
   return (
     <div className="space-y-6">
@@ -28,11 +25,14 @@ export const Dashboard = () => {
           </div>
         </div>
       )}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <StatusCard status={currentStatus} />
-        <ResponseTimeChart data={statusHistory} />
+      
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        {alerts.length === 0 ? (
+          <p className="text-gray-500">Aucune alerte n'a été enregistrée.</p>
+        ) : (
+          <AlertList alerts={alerts} />
+        )}
       </div>
-      <AlertList alerts={alerts} />
     </div>
   );
 }; 

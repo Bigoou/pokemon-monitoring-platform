@@ -10,6 +10,9 @@ interface AlertListProps {
   alerts: AlertHistory[];
 }
 
+/**
+ * Component that displays a list of alerts
+ */
 export const AlertList: React.FC<AlertListProps> = ({ alerts }) => {
   const getAlertIcon = (type: AlertHistory['type']) => {
     switch (type) {
@@ -19,6 +22,8 @@ export const AlertList: React.FC<AlertListProps> = ({ alerts }) => {
         return <ClockIcon className="h-6 w-6 text-yellow-500" />;
       case 'error':
         return <ExclamationCircleIcon className="h-6 w-6 text-red-500" />;
+      case 'warning':
+        return <ExclamationCircleIcon className="h-6 w-6 text-yellow-500" />;
     }
   };
 
@@ -30,6 +35,8 @@ export const AlertList: React.FC<AlertListProps> = ({ alerts }) => {
         return 'border-yellow-200 bg-yellow-50';
       case 'error':
         return 'border-red-200 bg-red-50';
+      case 'warning':
+        return 'border-yellow-200 bg-yellow-50';
     }
   };
 
