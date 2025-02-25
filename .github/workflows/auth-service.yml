@@ -24,11 +24,12 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: auth-service/package-lock.json
+        # Suppression de la mise en cache qui cause des problèmes
+        # cache: 'npm'
+        # cache-dependency-path: auth-service/package-lock.json
 
     - name: Install dependencies
-      run: npm ci
+      run: npm install --no-package-lock
 
     - name: Run ESLint
       run: npm run lint
